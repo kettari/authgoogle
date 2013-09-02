@@ -94,6 +94,13 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
             //$img = filter_var($user['picture'], FILTER_VALIDATE_URL);
             //$personMarkup = "$email<div><img src='$img?sz=50'></div>";
             
+            //Проверяем, подтвержден ли email в google
+            if (!$user['verified_email']) {
+                msg('Auth Google Error: '.$email.' not verifed in google account');
+                $this->logOff();                
+                return false;
+            }
+            
             //проверяем email в списке разрешенных
             if (!$this->_check_email_domain($email)) {
                 msg('Auth Google Error: access denied for '.$email);
