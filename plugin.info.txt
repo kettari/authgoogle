@@ -1,7 +1,7 @@
 base   authgoogle
 author Artyom
 email  sentryperm@gmail.com
-date   2013-08-26
+date   2013-09-02
 name   Google Authentication Plugin
-desc   Google's OAuth 2.0 authentication system
-url    http://sentryperm.com
+desc   Google Authentication Plugin allows to sign in to DokuWiki using OAuth 2.0 protocol provided by Google.
+url    https://www.dokuwiki.org/plugin:authgoogle
