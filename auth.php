@@ -2,6 +2,11 @@
 // must be run within Dokuwiki
 if(!defined('DOKU_INC')) die();
 define('GOOGLE_API_DIR', dirname(__FILE__).'/google/');
+
+global $conf;
+// define cookie and session id, append server port when securecookie is configured
+if (!defined('AUTHGOOGLE_COOKIE')) define('AUTHGOOGLE_COOKIE', 'SPGG'.md5(DOKU_REL.(($conf['securecookie'])?$_SERVER['SERVER_PORT']:'')));
+
 /**
  * Google Auth 2.0 authentication backend
  *
@@ -52,6 +57,11 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
             }            
         }
         
+        //если токен сохранен в куках - достаем
+        if ($_COOKIE[AUTHGOOGLE_COOKIE]) {
+            $_SESSION[DOKU_COOKIE]['authgoogle']['token'] = $_COOKIE[AUTHGOOGLE_COOKIE];
+        }
+        
         //google auth
         require_once GOOGLE_API_DIR.'/Google_Client.php';
         require_once GOOGLE_API_DIR.'/contrib/Google_Oauth2Service.php';
@@ -70,6 +80,8 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
                 $client->authenticate($_GET['code']);
                 //сохраняем токен
                 $_SESSION[DOKU_COOKIE]['authgoogle']['token'] = $client->getAccessToken();
+                //сохраняем токен в куки                
+                $this->_updateCookie($_SESSION[DOKU_COOKIE]['authgoogle']['token'], time() + 60 * 60 * 24 * 365);
                 //редирект на главную
                 header("Location: ".wl($ID, '', true, '&'));
                 die();
@@ -171,6 +183,19 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
         unset($_SESSION[DOKU_COOKIE]['authgoogle']['token']);
         unset($_SESSION[DOKU_COOKIE]['authgoogle']['user']);
         unset($_SESSION[DOKU_COOKIE]['authgoogle']['info']);
+        // clear the cookie
+        $this->_updateCookie('', time() - 600000);
+    }
+    
+    function _updateCookie($value, $time) {
+        global $conf;
+
+        $cookieDir = empty($conf['cookiedir']) ? DOKU_REL : $conf['cookiedir'];
+        if (version_compare(PHP_VERSION, '5.2.0', '>')) {
+            setcookie(AUTHGOOGLE_COOKIE, $value, $time, $cookieDir, '', ($conf['securecookie'] && is_ssl()), true);
+        } else {
+            setcookie(AUTHGOOGLE_COOKIE, $value, $time, $cookieDir, '', ($conf['securecookie'] && is_ssl()));
+        }
     }
 }
 ?>
