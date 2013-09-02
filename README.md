@@ -6,6 +6,7 @@ Google Authentication Plugin for DokuWiki
 settings
 ========
 Allowed email domains: allowed addresses separated by space
+
 example@example.com - one email
 *@example.com - all emails in domain
 * - all domains
