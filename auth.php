@@ -97,8 +97,11 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
             $login = 'google'.$user['id'];
             $udata = $this->getUserData($login);
             if (!$udata) {
+                //группы по умолчанию
+                $grps = null;
+                if ($this->getConf('default_groups')) $grps = explode(' ', $this->getConf('default_groups'));
                 //создаем пользователя
-                $this->createUser($login, md5(rand().$login), $user['name'], $email);
+                $this->createUser($login, md5(rand().$login), $user['name'], $email, $grps);
                 $udata = $this->getUserData($login);
             } elseif ($udata['name'] != $user['name'] || $udata['email'] != $email) {
                 //обновляем пользователя
