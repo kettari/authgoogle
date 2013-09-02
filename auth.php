@@ -72,6 +72,7 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
                 $_SESSION[DOKU_COOKIE]['authgoogle']['token'] = $client->getAccessToken();
                 //редирект на главную
                 header("Location: ".wl($ID, '', true, '&'));
+                die();
             } catch (Exception $e) {
                 msg('Auth Google Error: '.$e->getMessage());                
             }            
@@ -92,6 +93,13 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
             $email = filter_var($user['email'], FILTER_SANITIZE_EMAIL);
             //$img = filter_var($user['picture'], FILTER_VALIDATE_URL);
             //$personMarkup = "$email<div><img src='$img?sz=50'></div>";
+            
+            //проверяем email в списке разрешенных
+            if (!$this->_check_email_domain($email)) {
+                msg('Auth Google Error: access denied for '.$email);
+                $this->logOff();                
+                return false;
+            }
             
             //создаем или обновляем пользователя в базе
             $login = 'google'.$user['id'];
@@ -129,6 +137,27 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
         }
         
         return false;
+    }
+    
+    function _check_email_domain($email) {
+        //проверка домена email в списке разрешенных
+        if ($this->getConf('allowed_domains')) {
+            $domains = preg_split("/[ ]+/is", $this->getConf('allowed_domains'));
+            foreach ($domains as $domain) {
+                $domain = trim($domain);
+                //все домены
+                if ($domain == '*') return true;
+                //определенный email
+                if ($email == $domain) return true;
+                //определенный домен
+                if (preg_match("/^\\*@([^@ ]+)/is", $domain, $m)) {                    
+                    if (preg_match("/@([^@ ]+)$/is", $email, $n)) {
+                        if ($m[1] == $n[1]) return true;
+                    }
+                }
+            }
+        }          
+        return false;        
     }
     
     function logOff(){
