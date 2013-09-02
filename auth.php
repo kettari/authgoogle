@@ -23,7 +23,7 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
     function trustExternal($user, $pass, $sticky = false) {
 	global $USERINFO;
         
-        //если есть информация о пользователе в сессии
+        //get user info in session
         if (!empty($_SESSION[DOKU_COOKIE]['authgoogle']['info'])) {
             $USERINFO['name'] = $_SESSION[DOKU_COOKIE]['authgoogle']['info']['name'];
             $USERINFO['mail'] = $_SESSION[DOKU_COOKIE]['authgoogle']['info']['mail'];
@@ -33,18 +33,18 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
             return true;
 	}
         
-        //введены данные с формы
+        //get form login info
         if(!empty($user)){
             if($this->checkPass($user,$pass)){                
                 $uinfo  = $this->getUserData($user);
                 
-                //передаем информацию о пользователе
+                //set user info
                 $USERINFO['name'] = $uinfo['name'];
                 $USERINFO['mail'] = $uinfo['email'];
                 $USERINFO['grps'] = $uinfo['grps'];
                 $USERINFO['pass'] = $pass;
                 
-                //сохраняем данные в сессию
+                //save data in session
                 $_SERVER['REMOTE_USER'] = $uinfo['name'];
                 $_SESSION[DOKU_COOKIE]['authgoogle']['user'] = $uinfo['name'];                
                 $_SESSION[DOKU_COOKIE]['authgoogle']['info'] = $USERINFO;
@@ -57,7 +57,7 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
             }            
         }
         
-        //если токен сохранен в куках - достаем
+        //if token saved in cookies - get it
         if ($_COOKIE[AUTHGOOGLE_COOKIE]) {
             $_SESSION[DOKU_COOKIE]['authgoogle']['token'] = $_COOKIE[AUTHGOOGLE_COOKIE];
         }
@@ -73,69 +73,69 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
         $client->setRedirectUri(wl($ID,'id=start&do=login',true));
 
         $oauth2 = new Google_Oauth2Service($client);       
-        //получаем код для авторизации        
+        //get code from google redirect link       
         if (isset($_GET['code'])) {
-            //получение токена            
+            //get token            
             try {
                 $client->authenticate($_GET['code']);
-                //сохраняем токен
+                //save token in session
                 $_SESSION[DOKU_COOKIE]['authgoogle']['token'] = $client->getAccessToken();
-                //сохраняем токен в куки                
+                //save token in cookies                
                 $this->_updateCookie($_SESSION[DOKU_COOKIE]['authgoogle']['token'], time() + 60 * 60 * 24 * 365);
-                //редирект на главную
+                //redirect to main page
                 header("Location: ".wl($ID, '', true, '&'));
                 die();
             } catch (Exception $e) {
                 msg('Auth Google Error: '.$e->getMessage());                
             }            
         }
-        //сохраняем state и auth_url
+        //save state and auth_url in session
         $_SESSION[DOKU_COOKIE]['authgoogle']['state'] = $state;
         $_SESSION[DOKU_COOKIE]['authgoogle']['auth_url'] = $client->createAuthUrl();
         $_SESSION[DOKU_COOKIE]['authgoogle']['auth_url'] .= "&state=".$state;
         
-        //устанавливаем токен авторизации
+        //set token in client
         if (isset($_SESSION[DOKU_COOKIE]['authgoogle']['token'])) {
             $client->setAccessToken($_SESSION[DOKU_COOKIE]['authgoogle']['token']);
         }
         
-        //если авторизация успешна
+        //if successed auth
         if ($client->getAccessToken()) {
             $user = $oauth2->userinfo->get();        
             $email = filter_var($user['email'], FILTER_SANITIZE_EMAIL);
             //$img = filter_var($user['picture'], FILTER_VALIDATE_URL);
             //$personMarkup = "$email<div><img src='$img?sz=50'></div>";
             
-            //Проверяем, подтвержден ли email в google
+            //Check verify email in google
             if (!$user['verified_email']) {
                 msg('Auth Google Error: '.$email.' not verifed in google account');
                 $this->logOff();                
                 return false;
             }
             
-            //проверяем email в списке разрешенных
+            //check email in list allows
             if (!$this->_check_email_domain($email)) {
                 msg('Auth Google Error: access denied for '.$email);
                 $this->logOff();                
                 return false;
             }
             
-            //создаем или обновляем пользователя в базе
+            //create and update user in base
             $login = 'google'.$user['id'];
             $udata = $this->getUserData($login);
             if (!$udata) {
-                //группы по умолчанию
+                //default groups
                 $grps = null;
                 if ($this->getConf('default_groups')) $grps = explode(' ', $this->getConf('default_groups'));
-                //создаем пользователя
+                //create user
                 $this->createUser($login, md5(rand().$login), $user['name'], $email, $grps);
                 $udata = $this->getUserData($login);
             } elseif ($udata['name'] != $user['name'] || $udata['email'] != $email) {
-                //обновляем пользователя
+                //update user
                 $this->modifyUser($login, array('name'=>$user['name'], 'email'=>$email));
             }           
             
-            //передаем информацию о пользователе
+            //set user info
             $USERINFO['pass'] = "";
             $USERINFO['name'] = $user['name'];
             $USERINFO['mail'] = $email;
@@ -143,32 +143,32 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
             $USERINFO['is_google'] = true;
             $_SERVER['REMOTE_USER'] = $user['name'];
             
-            //сохраняем информацию в сессию
+            //save user info in session
             $_SESSION[DOKU_COOKIE]['authgoogle']['user'] = $_SERVER['REMOTE_USER'];
             $_SESSION[DOKU_COOKIE]['authgoogle']['info'] = $USERINFO;
         
-            // обновляем токен, так как может быть изменен
+            // update token
             $_SESSION['token'] = $client->getAccessToken();
             
             return true;
         } else {
-            //нет токена            
+            //no auth           
         }
         
         return false;
     }
     
     function _check_email_domain($email) {
-        //проверка домена email в списке разрешенных
+        //check email in allow domains
         if ($this->getConf('allowed_domains')) {
             $domains = preg_split("/[ ]+/is", $this->getConf('allowed_domains'));
             foreach ($domains as $domain) {
                 $domain = trim($domain);
-                //все домены
+                //all domains
                 if ($domain == '*') return true;
-                //определенный email
+                //email
                 if ($email == $domain) return true;
-                //определенный домен
+                //domain
                 if (preg_match("/^\\*@([^@ ]+)/is", $domain, $m)) {                    
                     if (preg_match("/@([^@ ]+)$/is", $email, $n)) {
                         if ($m[1] == $n[1]) return true;
