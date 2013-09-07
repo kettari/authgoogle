@@ -82,8 +82,8 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
                 $_SESSION[DOKU_COOKIE]['authgoogle']['token'] = $client->getAccessToken();
                 //save token in cookies                
                 $this->_updateCookie($_SESSION[DOKU_COOKIE]['authgoogle']['token'], time() + 60 * 60 * 24 * 365);
-                //redirect to main page
-                header("Location: ".wl($ID, '', true, '&'));
+                //redirect to login page
+                header("Location: ".wl('start', array('do'=>'login'), true));
                 die();
             } catch (Exception $e) {
                 msg('Auth Google Error: '.$e->getMessage());                
@@ -149,6 +149,10 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
         
             // update token
             $_SESSION['token'] = $client->getAccessToken();
+            
+            //if login page - redirect to main page
+            if (isset($_GET['do']) && $_GET['do']=='login')
+                header("Location: ".wl('start', '', true));
             
             return true;
         } else {
