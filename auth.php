@@ -15,7 +15,12 @@ if (!defined('AUTHGOOGLE_COOKIE')) define('AUTHGOOGLE_COOKIE', 'SPGG'.md5(DOKU_R
 class auth_plugin_authgoogle extends auth_plugin_authplain  { 
 
     public function __construct() {
+        global $config_cascade;
         parent::__construct();
+        
+        // fix if acl no used
+        $this->success = true;
+        
         $this->cando['external'] = true;
         $this->cando['logout'] = true; 
     }
