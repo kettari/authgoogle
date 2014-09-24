@@ -101,7 +101,12 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
         
         //set token in client
         if (isset($_SESSION[DOKU_COOKIE]['authgoogle']['token'])) {
-            $client->setAccessToken($_SESSION[DOKU_COOKIE]['authgoogle']['token']);
+            try {
+                $client->setAccessToken($_SESSION[DOKU_COOKIE]['authgoogle']['token']);
+            } catch (Exception $e){
+                $this->logOff();
+                return false;
+            }
         }
         
         //if successed auth
