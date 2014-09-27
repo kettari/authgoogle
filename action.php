@@ -10,7 +10,7 @@ class action_plugin_authgoogle extends DokuWiki_Action_Plugin {
      */
     function register(&$controller)
     {
-        $controller->register_hook('HTML_LOGINFORM_OUTPUT', 'AFTER',  $this, 'hook_html_loginform_output', array());
+        $controller->register_hook('HTML_LOGINFORM_OUTPUT', 'BEFORE',  $this, 'hook_html_loginform_output', array());
         $controller->register_hook('HTML_UPDATEPROFILEFORM_OUTPUT', 'BEFORE', $this, 'hook_updateprofileform_output', array());
     }
     
