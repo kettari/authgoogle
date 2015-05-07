@@ -77,7 +77,7 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
         $client->setClientSecret($this->getConf('client_secret'));
         $client->setRedirectUri(wl('start',array('do'=>'login'),true, '&'));
         $client->setAccessType('online');
-        $client->etApprovalPrompt('auto');
+        $client->setApprovalPrompt('auto');
 
         $oauth2 = new Google_Oauth2Service($client);
         //get code from google redirect link
