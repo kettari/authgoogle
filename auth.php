@@ -113,6 +113,13 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
 
         //if successed auth
         if ($client->getAccessToken()) {
+            
+            // If the access token is expired, ask the user to login again
+            if($client->isAccessTokenExpired()) {
+                $authUrl = $client->createAuthUrl();
+                header('Location: ' . filter_var($authUrl, FILTER_SANITIZE_URL));
+            }
+            
             $user = $oauth2->userinfo->get();
             $email = filter_var($user['email'], FILTER_SANITIZE_EMAIL);
             //$img = filter_var($user['picture'], FILTER_VALIDATE_URL);
