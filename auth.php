@@ -67,6 +67,11 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
             $_SESSION[DOKU_COOKIE]['authgoogle']['token'] = $_COOKIE[AUTHGOOGLE_COOKIE];
         }
 
+	//set our referer for redirection, if we're hitting login
+	if (!empty($_SERVER['HTTP_REFERER'])) {
+		$_SESSION[DOKU_COOKIE]['authgoogle']['referer'] = $_SERVER['HTTP_REFERER'];
+	}
+
         //google auth
         require_once GOOGLE_API_DIR.'/Google_Client.php';
         require_once GOOGLE_API_DIR.'/contrib/Google_Oauth2Service.php';
@@ -113,13 +118,13 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
 
         //if successed auth
         if ($client->getAccessToken()) {
-            
+
             // If the access token is expired, ask the user to login again
             if($client->isAccessTokenExpired()) {
                 $authUrl = $client->createAuthUrl();
                 header('Location: ' . filter_var($authUrl, FILTER_SANITIZE_URL));
             }
-            
+
             $user = $oauth2->userinfo->get();
             $email = filter_var($user['email'], FILTER_SANITIZE_EMAIL);
             //$img = filter_var($user['picture'], FILTER_VALIDATE_URL);
@@ -169,9 +174,12 @@ class auth_plugin_authgoogle extends auth_plugin_authplain  {
             // update token
             $_SESSION['token'] = $client->getAccessToken();
 
-            //if login page - redirect to main page
-            if (isset($_GET['do']) && $_GET['do']=='login')
-                header("Location: ".wl('start', '', true));
+            //if login page - redirect to original referer or, if none, start page.
+            if (isset($_GET['do']) && $_GET['do']=='login') {
+		$referer = $_SESSION[DOKU_COOKIE]['authgoogle']['referer'];
+	    	$redirect = empty($referer) ? wl('start', '', true) : $referer;
+		header("Location: ".$referer);
+	    }
 
             return true;
         } else {
